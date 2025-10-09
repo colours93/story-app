@@ -135,7 +135,7 @@ export function ChapterTransition({ chapter, isVisible }: ChapterTransitionProps
     <>
       <section 
         ref={sectionRef}
-        className="relative min-h-screen flex items-center justify-center py-32 px-8 overflow-hidden"
+        className="relative min-h-screen flex items-center justify-center py-16 px-8 overflow-hidden"
       >
         {/* Frozen blurred background within section */}
         <div className="absolute inset-0 z-0">
@@ -150,25 +150,33 @@ export function ChapterTransition({ chapter, isVisible }: ChapterTransitionProps
         </div>
 
         {/* Main image with scroll-triggered animation and gaps */}
-        <div className={`relative z-10 max-w-3xl max-h-[70vh] mx-auto transition-all duration-1000 ${
+        <div className={`relative z-10 max-w-6xl max-h-[90vh] mx-auto transition-all duration-1000 ${
           sectionVisible 
             ? "opacity-100 translate-y-0 scale-100" 
             : "opacity-0 translate-y-12 scale-95"
         }`}>
-          <div className="relative cursor-pointer" onClick={handleImageClick}>
-            <Image
-              src={chapter.images[currentImageIndex]}
-              alt={`${chapter.title} - Image ${currentImageIndex + 1}`}
-              width={800}
-              height={600}
-              className={`object-contain rounded-lg shadow-2xl transition-all duration-700 hover:scale-105 ${
+          <div className="relative cursor-pointer group" onClick={handleImageClick}>
+            <div className="relative inline-block">
+              <Image
+                src={chapter.images[currentImageIndex]}
+                alt={`${chapter.title} - Image ${currentImageIndex + 1}`}
+                width={800}
+                height={600}
+                className={`object-contain rounded-lg shadow-2xl transition-all duration-700 group-hover:scale-105 ${
+                  imageLoaded 
+                    ? "scale-100 opacity-100" 
+                    : "scale-90 opacity-0"
+                }`}
+                onLoad={handleImageLoad}
+                priority
+              />
+              {/* Dynamic overlay that matches the actual image dimensions */}
+              <div className={`absolute top-0 left-0 w-full h-full bg-black/20 rounded-lg transition-all duration-700 group-hover:scale-105 ${
                 imageLoaded 
                   ? "scale-100 opacity-100" 
                   : "scale-90 opacity-0"
-              }`}
-              onLoad={handleImageLoad}
-              priority
-            />
+              }`} />
+            </div>
           </div>
 
           {/* Image counter - smaller and transparent */}

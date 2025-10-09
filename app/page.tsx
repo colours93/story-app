@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { ChapterSection } from "@/components/chapter-section"
 import { ChapterTransition } from "@/components/chapter-transition"
 import { ImageUploadPanel } from "@/components/image-upload-panel"
@@ -8,8 +9,12 @@ import { storyChapters } from "@/lib/story-data"
 
 export default function StoryPage() {
   const [chapters, setChapters] = useState(storyChapters)
-  const [visibleChapters, setVisibleChapters] = useState<number[]>([1])
+  const [visibleChapters, setVisibleChapters] = useState<number[]>(storyChapters.map(ch => ch.id))
   const observerRef = useRef<IntersectionObserver | null>(null)
+  const searchParams = useSearchParams()
+  
+  // Check if we're in viewer mode
+  const isViewerMode = searchParams.get('mode') === 'view' || searchParams.get('viewer') === 'true'
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
@@ -68,7 +73,9 @@ export default function StoryPage() {
         </div>
       </section>
 
-      <ImageUploadPanel chapters={chapters} onImageUpdate={handleImageUpdate} onTextUpdate={handleTextUpdate} />
+      {!isViewerMode && (
+        <ImageUploadPanel chapters={chapters} onImageUpdate={handleImageUpdate} onTextUpdate={handleTextUpdate} />
+      )}
     </main>
   )
 }
