@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { ChapterSection } from "@/components/chapter-section"
 import { ChapterTransition } from "@/components/chapter-transition"
 import { ImageUploadPanel } from "@/components/image-upload-panel"
 import { storyChapters } from "@/lib/story-data"
+import { Button } from "@/components/ui/button"
+import { LogOut, Settings } from "lucide-react"
+import { signOut } from "next-auth/react"
 
-export default function StoryPage() {
+function StoryContent() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [chapters, setChapters] = useState(storyChapters)
   const [visibleChapters, setVisibleChapters] = useState<number[]>(storyChapters.map(ch => ch.id))
   const observerRef = useRef<IntersectionObserver | null>(null)
@@ -15,6 +22,17 @@ export default function StoryPage() {
   
   // Check if we're in viewer mode
   const isViewerMode = searchParams.get('mode') === 'view' || searchParams.get('viewer') === 'true'
+  
+  // Check if user is admin
+  const isAdmin = session?.user?.role === 'admin'
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!session) {
+      router.push('/login')
+    }
+  }, [session, status, router])
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
@@ -36,46 +54,95 @@ export default function StoryPage() {
     }
   }, [])
 
+  const handleImageUpdate = (chapterId: number, imageUrls: string[]) => {
+    setChapters((prev) =>
+      prev.map((chapter) =>
+        chapter.id === chapterId ? { ...chapter, images: imageUrls } : chapter,
+      ),
+    )
+  }
+
   const handleTextUpdate = (chapterId: number, title: string, content: string) => {
     setChapters((prev) => prev.map((chapter) => (chapter.id === chapterId ? { ...chapter, title, content } : chapter)))
   }
 
-  const handleImageUpdate = (chapterId: number, imageUrls: string[]) => {
-    setChapters((prev) =>
-      prev.map((chapter) => (chapter.id === chapterId ? { ...chapter, images: imageUrls } : chapter)),
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/login' })
+  }
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
     )
   }
 
+  // Don't render anything if not authenticated (will redirect)
+  if (!session) {
+    return null
+  }
+
   return (
-    <main className="relative">
-      {chapters.map((chapter, index) => (
-        <div key={chapter.id}>
-          <ChapterSection
-            chapter={chapter}
-            observerRef={observerRef}
-            isVisible={visibleChapters.includes(chapter.id)}
-            isFirst={index === 0}
-            isLast={index === chapters.length - 1}
-          />
-          {chapter.images && chapter.images.length > 0 && (
-            <ChapterTransition 
-              chapter={chapter} 
-              isVisible={visibleChapters.includes(chapter.id)} 
+    <div className="min-h-screen bg-black text-white">
+      {/* Header with user info and logout */}
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-4">
+        <span className="text-sm text-gray-300">
+          Welcome, {session.user.name}
+        </span>
+        {session.user.role === 'admin' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/admin')}
+            className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Admin
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLogout}
+          className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout
+        </Button>
+      </div>
+
+      <main className="relative">
+        {chapters.map((chapter, index) => (
+          <div key={chapter.id}>
+            <ChapterSection
+              chapter={chapter}
+              isVisible={visibleChapters.includes(chapter.id)}
+              observerRef={observerRef}
             />
-          )}
-        </div>
-      ))}
+            {chapter.images && chapter.images.length > 0 && (
+              <ChapterTransition
+                chapter={chapter}
+                isVisible={visibleChapters.includes(chapter.id)}
+              />
+            )}
+          </div>
+        ))}
+      </main>
 
-      <section className="relative h-screen flex items-center justify-center bg-white">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl font-serif text-gray-900">The End</h2>
-          <p className="text-gray-600">...or is it just the beginning?</p>
-        </div>
-      </section>
-
-      {!isViewerMode && (
-        <ImageUploadPanel chapters={chapters} onImageUpdate={handleImageUpdate} onTextUpdate={handleTextUpdate} />
+      {/* Only show upload panel if not in viewer mode AND user is admin */}
+      {!isViewerMode && isAdmin && (
+        <ImageUploadPanel 
+          chapters={chapters} 
+          onImageUpdate={handleImageUpdate} 
+          onTextUpdate={handleTextUpdate} 
+        />
       )}
-    </main>
+    </div>
   )
+}
+
+export default function StoryPage() {
+  return <StoryContent />
 }

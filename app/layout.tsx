@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import { Playfair_Display } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
+import { Providers } from "@/components/providers"
 import "./globals.css"
 
 const playfair = Playfair_Display({
@@ -27,10 +28,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${playfair.variable} antialiased`}>
-        <Suspense fallback={null}>
-          {children}
-          <Analytics />
-        </Suspense>
+        <Providers>
+          <Suspense fallback={null}>
+            {children}
+            <Analytics />
+          </Suspense>
+        </Providers>
       </body>
     </html>
   )
