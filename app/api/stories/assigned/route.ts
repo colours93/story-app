@@ -3,19 +3,36 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { supabaseAdmin } from '@/lib/supabase'
 
+// Return assigned stories for the current user, including chapters, with a uniform shape
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Admin can see all stories
-    if (session.user.role === 'admin') {
+    // Admin: return all stories with chapters
+    if ((session.user as any)?.role === 'admin') {
       const { data: stories, error } = await supabaseAdmin
         .from('stories')
-        .select('*')
+        .select(`
+          id,
+          title,
+          description,
+          cover_image_url,
+          is_published,
+          created_at,
+          updated_at,
+          chapters (
+            id,
+            chapter_number,
+            title,
+            content,
+            created_at,
+            updated_at
+          )
+        `)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -23,10 +40,10 @@ export async function GET() {
         return NextResponse.json({ error: 'Failed to fetch stories' }, { status: 500 })
       }
 
-      return NextResponse.json(stories)
+      return NextResponse.json({ stories: stories || [] })
     }
 
-    // Regular users can only see assigned stories
+    // Regular users: return only stories assigned to them, with chapters
     const { data: assignedStories, error } = await supabaseAdmin
       .from('story_assignments')
       .select(`
@@ -34,22 +51,33 @@ export async function GET() {
         stories (
           id,
           title,
-          content,
-          image_url,
-          created_at
+          description,
+          cover_image_url,
+          is_published,
+          created_at,
+          updated_at,
+          chapters (
+            id,
+            chapter_number,
+            title,
+            content,
+            created_at,
+            updated_at
+          )
         )
       `)
-      .eq('user_id', session.user.id)
+      .eq('user_id', (session.user as any)?.id)
 
     if (error) {
       console.error('Error fetching assigned stories:', error)
       return NextResponse.json({ error: 'Failed to fetch assigned stories' }, { status: 500 })
     }
 
-    // Extract stories from the join result
-    const stories = assignedStories.map(assignment => assignment.stories).filter(Boolean)
+    const stories = (assignedStories || [])
+      .map((assignment: any) => assignment.stories)
+      .filter(Boolean)
 
-    return NextResponse.json(stories)
+    return NextResponse.json({ stories })
   } catch (error) {
     console.error('Error in GET /api/stories/assigned:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -1,0 +1,16 @@
+export const galleryImages = [
+  "/chapter-1.jpg",
+  "/chapter-2.jpg",
+  "/chapter-3.jpg",
+  "/chapter-4.jpg",
+  "/chapter-5.jpg",
+  "/chapter-6.jpg",
+  "/chapter-7.jpg",
+  "/chapter-8.jpg",
+  "/chapter-9.jpg",
+  "/chapter-10.jpg",
+  "/mysterious-glowing-door-standing-in-mystical-fores.jpg",
+  "/surreal-floating-islands-in-amber-sky-with-crystal.jpg",
+  "/mystical-ancient-forest-with-sunlight-filtering-th.jpg",
+  "/peaceful-forest-clearing-bathed-in-golden-sunlight.jpg",
+]

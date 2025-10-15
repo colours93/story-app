@@ -1,0 +1,19 @@
+-- Add email column to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255) UNIQUE;
+
+-- Create index for email lookups
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- Update existing users to have email same as username (temporary)
+UPDATE users SET email = username WHERE email IS NULL;
+
+-- Make email NOT NULL after updating existing records
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+
+-- Add email verification columns for future use
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token VARCHAR(255);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires TIMESTAMP WITH TIME ZONE;
+
+-- Create index for verification token lookups
+CREATE INDEX IF NOT EXISTS idx_users_verification_token ON users(email_verification_token);

@@ -1,19 +1,36 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.SUPABASE_URL!
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+// Lazily create clients to avoid import-time crashes when envs are missing.
+// This prevents unrelated routes (like NextAuth session/csrf) from failing with HTML errors.
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const service = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Client for frontend (uses anon key)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+function createMissingEnvProxy(name: string) {
+  // Lightweight proxy that throws a clear error only when actually used
+  return new Proxy({}, {
+    get() {
+      throw new Error(
+        `Supabase client "${name}" is not configured. Missing environment variables.`
+      )
+    }
+  }) as any
+}
 
-// Admin client for backend operations (uses service role key)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+// Frontend client (anon key)
+export const supabase = (url && anon)
+  ? createClient(url, anon)
+  : createMissingEnvProxy('anon')
+
+// Admin client for backend operations (service role key)
+export const supabaseAdmin = (url && service)
+  ? createClient(url, service, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : createMissingEnvProxy('admin')
 
 // Database types
 export interface User {

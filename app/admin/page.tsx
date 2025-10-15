@@ -1,481 +1,494 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { User, Story, StoryAssignment } from '@/lib/supabase'
-import { Trash2, UserPlus, BookOpen, Users } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { BookOpen, Users, Calendar, Eye, Trash2, UserPlus, FileText, Image as ImageIcon } from 'lucide-react'
+import { ChapterManagementPanel } from '@/components/chapter-management-panel'
+import Link from 'next/link'
+
+interface Story {
+  id: string
+  title: string
+  description: string
+  user_id: string
+  created_at: string
+  updated_at: string
+  is_published: boolean
+  chapter_count?: number
+}
+
+interface User {
+  id: string
+  username: string
+  email: string
+  role: string
+  created_at: string
+}
+
+interface DashboardStats {
+  totalStories: number
+  totalUsers: number
+  publishedStories: number
+  draftStories: number
+}
+
+interface Assignment {
+  id: string
+  user_id: string
+  story_id: string
+  assigned_at: string
+}
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [users, setUsers] = useState<User[]>([])
   const [stories, setStories] = useState<Story[]>([])
-  const [assignments, setAssignments] = useState<StoryAssignment[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [stats, setStats] = useState<DashboardStats>({
+    totalStories: 0,
+    totalUsers: 0,
+    publishedStories: 0,
+    draftStories: 0
+  })
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-
-  // New user form
-  const [newUser, setNewUser] = useState({
-    username: '',
-    email: '',
-    password: '',
-    role: 'user' as 'user' | 'admin'
-  })
-
-  // New story form
-  const [newStory, setNewStory] = useState({
-    title: '',
-    content: '',
-    image_url: ''
-  })
+  const [error, setError] = useState<string | null>(null)
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
+  const [selectedStoryId, setSelectedStoryId] = useState<string>('')
+  const [selectedUserId, setSelectedUserId] = useState<string>('')
+  const [assignmentLoading, setAssignmentLoading] = useState(false)
+  const [chapterManagementOpen, setChapterManagementOpen] = useState(false)
 
   useEffect(() => {
-    if (status === 'loading') return
-    
-    if (!session || session.user.role !== 'admin') {
-      router.push('/login')
-      return
-    }
+    // Rely on middleware for route protection to avoid client-side redirect loops.
+    // Only fetch data once the session is confirmed and the user is admin.
+    if (status !== 'authenticated') return
+    if (!session || session.user.role !== 'admin') return
 
-    fetchData()
-  }, [session, status, router])
+    fetchDashboardData()
+  }, [session, status])
 
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true)
       
-      // Fetch users
-      const usersRes = await fetch('/api/admin/users')
-      const usersData = await usersRes.json()
-      if (usersRes.ok) setUsers(usersData)
-
       // Fetch stories
-      const storiesRes = await fetch('/api/admin/stories')
-      const storiesData = await storiesRes.json()
-      if (storiesRes.ok) setStories(storiesData)
-
+      const storiesResponse = await fetch('/api/admin/stories')
+      if (!storiesResponse.ok) throw new Error('Failed to fetch stories')
+      const storiesData = await storiesResponse.json()
+      
+      // Fetch users
+      const usersResponse = await fetch('/api/admin/users')
+      if (!usersResponse.ok) throw new Error('Failed to fetch users')
+      const usersData = await usersResponse.json()
+      
       // Fetch assignments
-      const assignmentsRes = await fetch('/api/admin/assignments')
-      const assignmentsData = await assignmentsRes.json()
-      if (assignmentsRes.ok) setAssignments(assignmentsData)
-
+      const assignmentsResponse = await fetch('/api/admin/assignments')
+      if (!assignmentsResponse.ok) throw new Error('Failed to fetch assignments')
+      const assignmentsData = await assignmentsResponse.json()
+      
+      setStories(storiesData)
+      setUsers(usersData)
+      setAssignments(assignmentsData)
+      
+      // Calculate stats
+      const publishedCount = storiesData.filter((story: Story) => story.is_published).length
+      setStats({
+        totalStories: storiesData.length,
+        totalUsers: usersData.length,
+        publishedStories: publishedCount,
+        draftStories: storiesData.length - publishedCount
+      })
+      
     } catch (err) {
-      setError('Failed to fetch data')
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
   }
 
-  const createUser = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleAssignStory = async () => {
+    if (!selectedStoryId || !selectedUserId) {
+      alert('Please select both a story and a user')
+      return
+    }
+
+    setAssignmentLoading(true)
     try {
-      const res = await fetch('/api/admin/users', {
+      const response = await fetch('/api/admin/assignments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser)
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          story_id: selectedStoryId,
+          user_id: selectedUserId
+        })
       })
 
-      if (res.ok) {
-        setSuccess('User created successfully')
-        setNewUser({ username: '', email: '', password: '', role: 'user' })
-        fetchData()
-      } else {
-        const data = await res.json()
-        setError(data.error || 'Failed to create user')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to assign story')
       }
+
+      // Reset form and close dialog
+      setSelectedStoryId('')
+      setSelectedUserId('')
+      setAssignmentDialogOpen(false)
+      
+      // Refresh data
+      fetchDashboardData()
+      
+      alert('Story assigned successfully!')
     } catch (err) {
-      setError('Failed to create user')
+      alert('Failed to assign story: ' + (err instanceof Error ? err.message : 'Unknown error'))
+    } finally {
+      setAssignmentLoading(false)
     }
   }
 
-  const deleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return
-
-    try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE'
-      })
-
-      if (res.ok) {
-        setSuccess('User deleted successfully')
-        fetchData()
-      } else {
-        setError('Failed to delete user')
-      }
-    } catch (err) {
-      setError('Failed to delete user')
-    }
+  const getAssignedUsers = (storyId: string) => {
+    const storyAssignments = assignments.filter(a => a.story_id === storyId)
+    return storyAssignments.map(a => {
+      const user = users.find(u => u.id === a.user_id)
+      return user ? user.username : 'Unknown User'
+    }).join(', ')
   }
 
-  const createStory = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const res = await fetch('/api/admin/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newStory)
-      })
-
-      if (res.ok) {
-        setSuccess('Story created successfully')
-        setNewStory({ title: '', content: '', image_url: '' })
-        fetchData()
-      } else {
-        const data = await res.json()
-        setError(data.error || 'Failed to create story')
-      }
-    } catch (err) {
-      setError('Failed to create story')
-    }
-  }
-
-  const deleteStory = async (storyId: string) => {
+  const handleDeleteStory = async (storyId: string) => {
     if (!confirm('Are you sure you want to delete this story?')) return
-
+    
     try {
-      const res = await fetch(`/api/admin/stories/${storyId}`, {
+      const response = await fetch(`/api/admin/stories/${storyId}`, {
         method: 'DELETE'
       })
-
-      if (res.ok) {
-        setSuccess('Story deleted successfully')
-        fetchData()
-      } else {
-        setError('Failed to delete story')
-      }
+      
+      if (!response.ok) throw new Error('Failed to delete story')
+      
+      // Refresh data
+      fetchDashboardData()
     } catch (err) {
-      setError('Failed to delete story')
+      alert('Failed to delete story: ' + (err instanceof Error ? err.message : 'Unknown error'))
     }
   }
 
-  const assignStory = async (userId: string, storyId: string) => {
-    try {
-      const res = await fetch('/api/admin/assignments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, story_id: storyId })
-      })
-
-      if (res.ok) {
-        setSuccess('Story assigned successfully')
-        fetchData()
-      } else {
-        setError('Failed to assign story')
-      }
-    } catch (err) {
-      setError('Failed to assign story')
-    }
-  }
-
-  const unassignStory = async (assignmentId: string) => {
-    try {
-      const res = await fetch(`/api/admin/assignments/${assignmentId}`, {
-        method: 'DELETE'
-      })
-
-      if (res.ok) {
-        setSuccess('Story unassigned successfully')
-        fetchData()
-      } else {
-        setError('Failed to unassign story')
-      }
-    } catch (err) {
-      setError('Failed to unassign story')
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4 border rounded">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <Skeleton className="h-8 w-20" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
-  if (!session || session.user.role !== 'admin') {
-    return null
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-red-600">
+              <p>Error loading dashboard: {error}</p>
+              <Button onClick={fetchDashboardData} className="mt-4">
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Show chapter management view if active
+  if (chapterManagementOpen) {
+    return <ChapterManagementPanel onBack={() => setChapterManagementOpen(false)} />
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage users, stories, and assignments</p>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage stories and users</p>
         </div>
-
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert className="mb-4 border-green-200 bg-green-50">
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
-
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="stories" className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
-              Stories
-            </TabsTrigger>
-            <TabsTrigger value="assignments">Assignments</TabsTrigger>
-            <TabsTrigger value="create">Create</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>Users Management</CardTitle>
-                <CardDescription>Manage user accounts and roles</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {users.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h3 className="font-medium">{user.username}</h3>
-                        <p className="text-sm text-gray-600">{user.email}</p>
-                        <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                          user.role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteUser(user.id)}
-                        disabled={user.role === 'admin'}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
+        <div className="flex gap-2">
+          <Link href="/admin/gallery">
+            <Button variant="outline">
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Site Gallery
+            </Button>
+          </Link>
+          <Button onClick={() => setChapterManagementOpen(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            Manage Chapters
+          </Button>
+          <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Assign Story
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Assign Story to User</DialogTitle>
+                <DialogDescription>
+                  Select a story and user to create an assignment
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Story</label>
+                  <Select value={selectedStoryId} onValueChange={setSelectedStoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a story" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stories.map((story) => (
+                        <SelectItem key={story.id} value={story.id}>
+                          {story.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="stories">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stories Management</CardTitle>
-                <CardDescription>Manage story content and images</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {stories.map((story) => (
-                    <div key={story.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-medium">{story.title}</h3>
-                        <p className="text-sm text-gray-600 line-clamp-2">{story.content}</p>
-                        {story.image_url && (
-                          <img src={story.image_url} alt={story.title} className="w-16 h-16 object-cover rounded mt-2" />
-                        )}
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteStory(story.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
+                <div>
+                  <label className="text-sm font-medium">User</label>
+                  <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.filter(user => user.role !== 'admin').map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.username} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setAssignmentDialogOpen(false)}
+                    disabled={assignmentLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleAssignStory}
+                    disabled={assignmentLoading || !selectedStoryId || !selectedUserId}
+                  >
+                    {assignmentLoading ? 'Assigning...' : 'Assign Story'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={fetchDashboardData} variant="outline">
+            Refresh
+          </Button>
+        </div>
+      </div>
 
-          <TabsContent value="assignments">
-            <Card>
-              <CardHeader>
-                <CardTitle>Story Assignments</CardTitle>
-                <CardDescription>Manage which users can access which stories</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {assignments.map((assignment) => {
-                    const user = users.find(u => u.id === assignment.user_id)
-                    const story = stories.find(s => s.id === assignment.story_id)
-                    return (
-                      <div key={assignment.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <h3 className="font-medium">{user?.username} → {story?.title}</h3>
-                          <p className="text-sm text-gray-600">
-                            Assigned on {new Date(assignment.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => unassignStory(assignment.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    )
-                  })}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Stories</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalStories}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Published</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.publishedStories}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Drafts</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.draftStories}</div>
+          </CardContent>
+        </Card>
+      </div>
 
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium mb-4">Assign Story to User</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Select User</Label>
-                        <select 
-                          className="w-full p-2 border rounded-md"
-                          onChange={(e) => {
-                            const userId = e.target.value
-                            const storySelect = document.getElementById('story-select') as HTMLSelectElement
-                            if (userId && storySelect.value) {
-                              assignStory(userId, storySelect.value)
-                            }
-                          }}
-                        >
-                          <option value="">Choose user...</option>
-                          {users.filter(u => u.role === 'user').map(user => (
-                            <option key={user.id} value={user.id}>{user.username}</option>
-                          ))}
-                        </select>
+      {/* Stories List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Stories</CardTitle>
+          <CardDescription>
+            Manage all stories in the system and their assignments
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {stories.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No stories found
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {stories.map((story) => (
+                <div
+                  key={story.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{story.title}</h3>
+                      <Badge variant={story.is_published ? "default" : "secondary"}>
+                        {story.is_published ? "Published" : "Draft"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {story.description}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>Created: {formatDate(story.created_at)}</span>
+                      <span>Updated: {formatDate(story.updated_at)}</span>
+                      <span>Author ID: {story.user_id}</span>
+                    </div>
+                    {getAssignedUsers(story.id) && (
+                      <div className="text-xs text-blue-600">
+                        Assigned to: {getAssignedUsers(story.id)}
                       </div>
-                      <div>
-                        <Label>Select Story</Label>
-                        <select 
-                          id="story-select"
-                          className="w-full p-2 border rounded-md"
-                        >
-                          <option value="">Choose story...</option>
-                          {stories.map(story => (
-                            <option key={story.id} value={story.id}>{story.title}</option>
-                          ))}
-                        </select>
-                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/story`)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteStory(story.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Users Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Users</CardTitle>
+          <CardDescription>
+            Latest registered users
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {users.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No users found
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {users.slice(0, 5).map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center justify-between p-3 border rounded"
+                >
+                  <div>
+                    <div className="font-medium">{user.username}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                  </div>
+                  <div className="text-right">
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {formatDate(user.created_at)}
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="create">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UserPlus className="w-5 h-5" />
-                    Create New User
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={createUser} className="space-y-4">
-                    <div>
-                      <Label htmlFor="username">Username</Label>
-                      <Input
-                        id="username"
-                        value={newUser.username}
-                        onChange={(e) => setNewUser({...newUser, username: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={newUser.email}
-                        onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="password">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="role">Role</Label>
-                      <select
-                        id="role"
-                        className="w-full p-2 border rounded-md"
-                        value={newUser.role}
-                        onChange={(e) => setNewUser({...newUser, role: e.target.value as 'user' | 'admin'})}
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
-                    <Button type="submit" className="w-full">Create User</Button>
-                  </form>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5" />
-                    Create New Story
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={createStory} className="space-y-4">
-                    <div>
-                      <Label htmlFor="story-title">Title</Label>
-                      <Input
-                        id="story-title"
-                        value={newStory.title}
-                        onChange={(e) => setNewStory({...newStory, title: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="story-content">Content</Label>
-                      <textarea
-                        id="story-content"
-                        className="w-full p-2 border rounded-md h-32"
-                        value={newStory.content}
-                        onChange={(e) => setNewStory({...newStory, content: e.target.value})}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="story-image">Image URL</Label>
-                      <Input
-                        id="story-image"
-                        type="url"
-                        value={newStory.image_url}
-                        onChange={(e) => setNewStory({...newStory, image_url: e.target.value})}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                    <Button type="submit" className="w-full">Create Story</Button>
-                  </form>
-                </CardContent>
-              </Card>
+              ))}
             </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

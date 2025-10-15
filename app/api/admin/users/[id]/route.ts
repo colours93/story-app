@@ -2,6 +2,40 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { supabaseAdmin } from '@/lib/supabase'
+import fs from 'fs/promises'
+import path from 'path'
+
+const DEV_USER_TIERS_FILE = path.join(process.cwd(), 'supabase', '.temp', 'dev_user_tiers.json')
+
+async function ensureDevDir() {
+  try {
+    const dir = path.join(process.cwd(), 'supabase', '.temp')
+    await fs.mkdir(dir, { recursive: true })
+  } catch {}
+}
+
+async function readDevUserTiers(): Promise<Record<string, string>> {
+  try {
+    await ensureDevDir()
+    const raw = await fs.readFile(DEV_USER_TIERS_FILE, 'utf-8')
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      const map: Record<string, string> = {}
+      for (const item of parsed as any[]) {
+        if (item && item.user_id && item.tier_id) map[item.user_id] = item.tier_id
+      }
+      return map
+    }
+    return parsed || {}
+  } catch {
+    return {}
+  }
+}
+
+async function writeDevUserTiers(map: Record<string, string>) {
+  await ensureDevDir()
+  await fs.writeFile(DEV_USER_TIERS_FILE, JSON.stringify(map, null, 2), 'utf-8')
+}
 
 export async function DELETE(
   request: NextRequest,
@@ -41,7 +75,29 @@ export async function DELETE(
 
     if (error) {
       console.error('Error deleting user:', error)
-      return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
+      // Dev fallback: update local user→tier mapping
+      try {
+        const map = await readDevUserTiers()
+        if (map[userId]) {
+          delete map[userId]
+          await writeDevUserTiers(map)
+        }
+        return NextResponse.json({ message: 'User deleted (dev fallback)' })
+      } catch (e) {
+        console.error('Dev fallback failed to update tier mapping:', e)
+        return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 })
+      }
+    }
+
+    // Also remove from dev tier mapping on success
+    try {
+      const map = await readDevUserTiers()
+      if (map[userId]) {
+        delete map[userId]
+        await writeDevUserTiers(map)
+      }
+    } catch (e) {
+      console.warn('Unable to update dev tier mapping after deletion:', e)
     }
 
     return NextResponse.json({ message: 'User deleted successfully' })

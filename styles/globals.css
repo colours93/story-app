@@ -115,6 +115,21 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* Heartbeat animation for the pixel heart */
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.08); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.08); }
+  70% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

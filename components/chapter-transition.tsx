@@ -145,8 +145,7 @@ export function ChapterTransition({ chapter, isVisible }: ChapterTransitionProps
             fill
             className="object-cover blur-3xl opacity-30"
           />
-          {/* Dark overlay for better contrast */}
-          <div className="absolute inset-0 bg-black/20" />
+
         </div>
 
         {/* Main image with scroll-triggered animation and gaps */}
@@ -170,18 +169,13 @@ export function ChapterTransition({ chapter, isVisible }: ChapterTransitionProps
                 onLoad={handleImageLoad}
                 priority
               />
-              {/* Dynamic overlay that matches the actual image dimensions */}
-              <div className={`absolute top-0 left-0 w-full h-full bg-black/20 rounded-lg transition-all duration-700 group-hover:scale-105 ${
-                imageLoaded 
-                  ? "scale-100 opacity-100" 
-                  : "scale-90 opacity-0"
-              }`} />
+
             </div>
           </div>
 
-          {/* Image counter - smaller and transparent */}
+          {/* Image counter - white text, more opaque without background */}
           {chapter.images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-xs">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-xs opacity-90">
               {currentImageIndex + 1} / {chapter.images.length}
             </div>
           )}
@@ -192,7 +186,7 @@ export function ChapterTransition({ chapter, isVisible }: ChapterTransitionProps
       {isFullscreen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Dark blurred overlay */}
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setIsFullscreen(false)} />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-xl" onClick={() => setIsFullscreen(false)} />
           
           {/* Fullscreen image container */}
           <div className="relative z-10 max-w-[95vw] max-h-[95vh] flex items-center justify-center">
@@ -210,14 +204,14 @@ export function ChapterTransition({ chapter, isVisible }: ChapterTransitionProps
             {/* Close button */}
             <button
               onClick={() => setIsFullscreen(false)}
-              className="absolute top-8 right-8 p-3 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all duration-200 backdrop-blur-sm"
+              className="absolute top-8 right-8 p-3 rounded-full bg-white/20 text-gray-700 hover:bg-white/30 transition-all duration-200 backdrop-blur-sm"
             >
               <X className="w-6 h-6" />
             </button>
 
-            {/* Fullscreen image counter - smaller and transparent */}
+            {/* Fullscreen image counter - white text, more opaque without background */}
             {chapter.images.length > 1 && (
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 text-sm">
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white text-sm opacity-90">
                 {currentImageIndex + 1} / {chapter.images.length}
               </div>
             )}

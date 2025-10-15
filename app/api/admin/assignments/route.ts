@@ -14,7 +14,7 @@ export async function GET() {
     const { data: assignments, error } = await supabaseAdmin
       .from('story_assignments')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('assigned_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching assignments:', error)

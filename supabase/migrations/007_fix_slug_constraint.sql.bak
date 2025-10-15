@@ -1,0 +1,31 @@
+-- Make slug field nullable and add a function to generate slugs
+ALTER TABLE stories ALTER COLUMN slug DROP NOT NULL;
+
+-- Create a function to generate slugs from titles
+CREATE OR REPLACE FUNCTION generate_slug(title TEXT)
+RETURNS TEXT AS $$
+BEGIN
+  RETURN lower(regexp_replace(regexp_replace(title, '[^a-zA-Z0-9\s]', '', 'g'), '\s+', '-', 'g'));
+END;
+$$ LANGUAGE plpgsql;
+
+-- Update existing stories without slugs
+UPDATE stories 
+SET slug = generate_slug(title) || '-' || substring(id::text from 1 for 8)
+WHERE slug IS NULL;
+
+-- Add a trigger to auto-generate slugs for new stories if not provided
+CREATE OR REPLACE FUNCTION auto_generate_slug()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.slug IS NULL OR NEW.slug = '' THEN
+    NEW.slug := generate_slug(NEW.title) || '-' || substring(NEW.id::text from 1 for 8);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER stories_auto_slug
+  BEFORE INSERT OR UPDATE ON stories
+  FOR EACH ROW
+  EXECUTE FUNCTION auto_generate_slug();

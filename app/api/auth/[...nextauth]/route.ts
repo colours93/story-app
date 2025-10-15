@@ -20,18 +20,25 @@ export const authOptions = {
         }
 
         try {
-          // Query user from Supabase
+          // Guard: ensure Supabase admin client is available
+          if (!supabaseAdmin || typeof (supabaseAdmin as any).from !== 'function') {
+            console.error('⚠️ Supabase admin client not configured. Check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.')
+            return null
+          }
+
+          // Query user from Supabase by username or email
           console.log('🔍 Querying user from Supabase...')
           const { data: user, error } = await supabaseAdmin
             .from('users')
             .select('*')
-            .eq('username', credentials.username)
+            .or(`username.eq.${credentials.username},email.eq.${credentials.username}`)
             .single()
 
           console.log('📊 Supabase query result:', { 
             userFound: !!user, 
             error: error?.message,
             username: user?.username,
+            email: user?.email,
             hasPasswordHash: !!user?.password_hash
           })
 
@@ -58,7 +65,7 @@ export const authOptions = {
           return {
             id: user.id,
             name: user.username,
-            email: user.username,
+            email: user.email,
             role: user.role,
           }
         } catch (error) {

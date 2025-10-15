@@ -20,12 +20,8 @@ export default withAuth(
       }
     }
 
-    // Story page protection - only authenticated users
-    if (pathname === '/story' || pathname.startsWith('/story/')) {
-      if (!token) {
-        return NextResponse.redirect(new URL('/login', req.url))
-      }
-    }
+    // Note: Story page is no longer blocked at middleware level.
+    // Client-side guards on the Story page handle access and display.
 
     return NextResponse.next()
   },
@@ -50,6 +46,6 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/api/admin/:path*',
-    '/story/:path*'
+    // Story routes are intentionally excluded to avoid redirect loops
   ]
 }
