@@ -299,3 +299,23 @@
   .sprite-float-diagonal,
   .sprite-bob { animation: none !important; }
 }
+
+/* Pop animation for interactive card hearts (separate from background drift) */
+.heart-pop {
+  animation: heartPop 420ms ease-out forwards;
+}
+
+@keyframes heartPop {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 0.8;
+  }
+  60% {
+    transform: scale(1.4) rotate(6deg) translateY(-4px);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.85) translateY(-6px);
+    opacity: 0;
+  }
+}

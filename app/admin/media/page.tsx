@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { Switch } from "@/components/ui/switch"
 
 type Tier = { id: string; name: string; rank: number; monthly_price_cents: number }
 
@@ -24,6 +25,7 @@ export default function AdminMediaPage() {
   const [requiredTierId, setRequiredTierId] = useState<string | undefined>(undefined)
   const [priceCents, setPriceCents] = useState<string>("")
   const [isPublished, setIsPublished] = useState(true)
+  const [isSpecialCard, setIsSpecialCard] = useState(false)
   const [media, setMedia] = useState<MediaItem[]>([{ url: "", type: "image" }])
   const [submitting, setSubmitting] = useState(false)
 
@@ -98,6 +100,7 @@ export default function AdminMediaPage() {
           required_tier_id: requiredTierId,
           price_cents: priceCents ? parseInt(priceCents, 10) : undefined,
           is_published: isPublished,
+          is_special_card: isSpecialCard,
           media: media.filter(m => m.url && m.url.length > 0)
         })
       })
@@ -110,6 +113,7 @@ export default function AdminMediaPage() {
       setRequiredTierId(undefined)
       setPriceCents("")
       setIsPublished(true)
+      setIsSpecialCard(false)
       setMedia([{ url: "", type: "image" }])
     } catch (e:any) {
       toast({ title: 'Create failed', description: e.message || 'Could not create media post', variant: 'destructive' })
@@ -121,26 +125,30 @@ export default function AdminMediaPage() {
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 font-bubble">
       <div className="mb-6" />
-      <Card className="bg-pink-50 border-pink-200">
+      <Card className="relative border-2 border-black rounded-none bg-[repeating-linear-gradient(0deg,#fff,#fff_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+        <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-black" />
         <CardContent className="py-8">
-          <h1 className="text-3xl font-bold text-pink-600 mb-6">Admin: Create Media Post</h1>
+          <h1 className="text-3xl font-bold text-black mb-6">Admin: Create Media Post</h1>
           {loading ? (
             <div className="text-pink-500">Loading tiers…</div>
           ) : (
             <div className="space-y-6">
               <div>
-                <label className="block text-pink-700 mb-1">Title</label>
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Post title" />
+                <label className="block text-pink-800 mb-1">Title</label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Post title" className="rounded-none border-2 border-black bg-white text-black" />
               </div>
               <div>
-                <label className="block text-pink-700 mb-1">Description</label>
-                <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe the content" />
+                <label className="block text-pink-800 mb-1">Description</label>
+                <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe the content" className="rounded-none border-2 border-black bg-white text-black" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-pink-700 mb-1">Required Tier</label>
+                  <label className="block text-pink-800 mb-1">Required Tier</label>
                   <Select value={requiredTierId} onValueChange={(val) => setRequiredTierId(val)}>
-                    <SelectTrigger className="bg-white">
+                    <SelectTrigger className="bg-white rounded-none border-2 border-black text-black">
                       <SelectValue placeholder="Select tier" />
                     </SelectTrigger>
                     <SelectContent>
@@ -151,13 +159,13 @@ export default function AdminMediaPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-pink-700 mb-1">Price (cents)</label>
-                  <Input value={priceCents} onChange={(e) => setPriceCents(e.target.value)} placeholder="e.g. 499" />
+                  <label className="block text-pink-800 mb-1">Price (cents)</label>
+                  <Input value={priceCents} onChange={(e) => setPriceCents(e.target.value)} placeholder="e.g. 499" className="rounded-none border-2 border-black bg-white text-black" />
                 </div>
                 <div>
-                  <label className="block text-pink-700 mb-1">Publish</label>
+                  <label className="block text-pink-800 mb-1">Publish</label>
                   <div className="flex items-center gap-2">
-                    <Button variant={isPublished ? 'default' : 'outline'} onClick={() => setIsPublished(!isPublished)}>
+                    <Button variant={isPublished ? 'default' : 'outline'} onClick={() => setIsPublished(!isPublished)} className={isPublished ? 'rounded-none border-2 border-black bg-pink-300 text-black hover:bg-pink-400' : 'rounded-none border-2 border-black bg-white text-black hover:bg-pink-50'}>
                       {isPublished ? 'Published' : 'Draft'}
                     </Button>
                   </div>
@@ -165,7 +173,15 @@ export default function AdminMediaPage() {
               </div>
 
               <div>
-                <label className="block text-pink-700 mb-2">Media Items</label>
+                <label className="block text-pink-800 mb-1">Special Card Styling</label>
+                <div className="flex items-center gap-3">
+                  <Switch checked={isSpecialCard} onCheckedChange={(v) => setIsSpecialCard(Boolean(v))} />
+                  <span className="text-sm text-pink-700">Apply special membership-style card to this post</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-pink-800 mb-2">Media Items</label>
                 <div className="flex items-center gap-2 mb-3">
                   <input
                     ref={fileInputRef}
@@ -175,18 +191,18 @@ export default function AdminMediaPage() {
                     className="hidden"
                     onChange={(e) => e.target.files && uploadLocalFiles(e.target.files)}
                   />
-                  <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="bg-pink-600 text-white">
+                  <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="rounded-none border-2 border-black bg-pink-300 text-black hover:bg-pink-400">
                     {uploading ? 'Uploading…' : 'Upload from device'}
                   </Button>
-                  <span className="text-xs text-pink-700">Adds uploaded files as media entries</span>
+                  <span className="text-xs text-pink-800">Adds uploaded files as media entries</span>
                 </div>
                 <div className="space-y-3">
                   {media.map((m, i) => (
                     <div key={i} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
                       <div className="md:col-span-2">
-                        <label className="text-sm text-pink-700">Type</label>
+                        <label className="text-sm text-pink-800">Type</label>
                         <Select value={m.type} onValueChange={(val: 'image' | 'video') => updateMedia(i, { type: val })}>
-                          <SelectTrigger className="bg-white">
+                          <SelectTrigger className="bg-white rounded-none border-2 border-black text-black">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -196,22 +212,22 @@ export default function AdminMediaPage() {
                         </Select>
                       </div>
                       <div className="md:col-span-3">
-                        <label className="text-sm text-pink-700">URL</label>
-                        <Input value={m.url} onChange={(e) => updateMedia(i, { url: e.target.value })} placeholder="https://…" />
+                        <label className="text-sm text-pink-800">URL</label>
+                        <Input value={m.url} onChange={(e) => updateMedia(i, { url: e.target.value })} placeholder="https://…" className="rounded-none border-2 border-black bg-white text-black" />
                       </div>
                       <div className="md:col-span-1 flex gap-2">
-                        <Button variant="outline" onClick={() => removeMedia(i)}>Remove</Button>
+                        <Button variant="outline" onClick={() => removeMedia(i)} className="rounded-none border-2 border-black bg-white text-black hover:bg-pink-50">Remove</Button>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="mt-3">
-                  <Button variant="secondary" onClick={addMediaRow}>Add Media</Button>
+                  <Button variant="secondary" onClick={addMediaRow} className="rounded-none border-2 border-black bg-pink-300 text-black hover:bg-pink-400">Add Media</Button>
                 </div>
               </div>
 
               <div className="pt-2">
-                <Button onClick={submit} disabled={submitting}>Save Post</Button>
+                <Button onClick={submit} disabled={submitting} className="rounded-none border-2 border-black bg-pink-300 text-black hover:bg-pink-400">Save Post</Button>
               </div>
             </div>
           )}

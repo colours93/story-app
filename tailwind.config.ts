@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
+  darkMode: ["class", "dark"],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -22,6 +22,7 @@ const config: Config = {
         mono: ["var(--font-geist-mono)", "monospace"],
         serif: ["var(--font-serif)", "serif"],
         bubble: ["var(--font-bubble)", "Comic Sans MS", "cursive", "sans-serif"],
+        bubbleTitle: ["var(--font-bubble-title)", "Comic Sans MS", "cursive", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

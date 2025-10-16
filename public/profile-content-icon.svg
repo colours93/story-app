@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <title>Profile Content Icon</title>
+  <desc>Simple female silhouette icon</desc>
+  <g fill="#111" fill-rule="evenodd">
+    <!-- Hair / head -->
+    <path d="M32 10c9 0 16 7 16 16v8c0 3-2 5-5 5H21c-3 0-5-2-5-5v-8c0-9 7-16 16-16z"/>
+    <!-- Face / lips -->
+    <circle cx="32" cy="28" r="6" fill="#fff"/>
+    <path d="M30 28c1 1 3 1 4 0-.6 1.2-3.4 1.2-4 0z" fill="#111"/>
+    <!-- Shoulders / bust -->
+    <path d="M16 44c4-6 10-8 16-8s12 2 16 8v6H16v-6z"/>
+  </g>
+</svg>

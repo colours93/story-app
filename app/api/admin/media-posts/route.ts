@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { title, body, required_tier_id, price_cents, is_published, media } = await request.json()
+    const { title, body, required_tier_id, price_cents, is_published, media, is_special_card } = await request.json()
     const userId = (session.user as any).id
 
     const { data: post, error: postError } = await supabaseAdmin
@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         required_tier_id: required_tier_id || null,
         price_cents: price_cents || null,
         is_published: Boolean(is_published),
+        is_special_card: Boolean(is_special_card),
       })
       .select('*')
       .single()
@@ -110,6 +111,7 @@ export async function POST(request: NextRequest) {
         required_tier_id: required_tier_id || null,
         price_cents: price_cents || null,
         is_published: Boolean(is_published),
+        is_special_card: Boolean(is_special_card),
         created_at: new Date().toISOString(),
         assets,
       }

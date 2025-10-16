@@ -82,34 +82,58 @@ export default function SiteGalleryAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto px-6 py-8">
-        <Card className="border-2 border-pink-200">
+        <Card className="relative rounded-none border-2 border-black bg-pink-50">
+          {/* pixel corner squares */}
+          <span className="absolute -top-1 -left-1 w-2 h-2 bg-black"></span>
+          <span className="absolute -top-1 -right-1 w-2 h-2 bg-black"></span>
+          <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-black"></span>
+          <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-black"></span>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-pink-600" />
+            <CardTitle className="flex items-center gap-2 text-black">
+              <ImageIcon className="h-5 w-5 text-black" />
               Site Gallery
             </CardTitle>
-            <CardDescription>Images used by Login and Signup background.</CardDescription>
+            <CardDescription className="text-black/70">Images used by Login and Signup background.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-4">
               <div className="text-sm text-muted-foreground">{siteImages.length} images</div>
               <div className="flex gap-2 items-center">
                 <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && uploadFiles(e.target.files)} />
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="bg-pink-600 hover:bg-pink-700 text-white">
-                  {uploading ? (<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />) : (<Upload className="h-4 w-4 mr-2" />)}
+                <Button
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="rounded-none border-2 border-black bg-pink-200 text-black hover:bg-pink-300 shadow-[4px_4px_0_0_#000]"
+                >
+                  {uploading ? (
+                    <div className="animate-spin rounded-none h-4 w-4 border-b-2 border-black mr-2" />
+                  ) : (
+                    <Upload className="h-4 w-4 mr-2 text-black" />
+                  )}
                   {uploading ? 'Uploading...' : 'Add Images'}
                 </Button>
               </div>
             </div>
 
             {siteImages.length === 0 ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
-                <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 mb-3">No site images yet. Click "Add Images" to upload.</p>
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="bg-pink-600 hover:bg-pink-700 text-white">
-                  <Upload className="w-4 h-4 mr-1" />
+              <div className="relative border-2 border-black rounded-none p-8 text-center bg-pink-50">
+                {/* corner squares */}
+                <span className="absolute -top-1 -left-1 w-2 h-2 bg-black"></span>
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-black"></span>
+                <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-black"></span>
+                <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-black"></span>
+                <ImageIcon className="w-12 h-12 text-black mx-auto mb-3" />
+                <p className="text-sm text-black mb-3">No site images yet. Click "Add Images" to upload.</p>
+                <Button
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="rounded-none border-2 border-black bg-pink-200 text-black hover:bg-pink-300 shadow-[4px_4px_0_0_#000]"
+                >
+                  <Upload className="w-4 h-4 mr-1 text-black" />
                   Upload First Image
                 </Button>
               </div>
@@ -117,12 +141,21 @@ export default function SiteGalleryAdminPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {siteImages.map((url, i) => (
                   <div key={i} className="relative group">
-                    <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border">
+                    <div className="relative aspect-square rounded-none overflow-hidden bg-pink-50 border-2 border-black">
+                      {/* corner squares */}
+                      <span className="absolute -top-1 -left-1 w-2 h-2 bg-black"></span>
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-black"></span>
+                      <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-black"></span>
+                      <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-black"></span>
                       <Image src={url} alt={`Site image ${i + 1}`} width={300} height={300} className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="sm" variant="destructive" onClick={() => removeImage(url)} className="h-8 w-8 p-0">
-                        <X className="w-4 h-4" />
+                      <Button
+                        size="sm"
+                        onClick={() => removeImage(url)}
+                        className="h-8 w-8 p-0 rounded-none border-2 border-black bg-pink-200 text-black hover:bg-pink-300 shadow-[3px_3px_0_0_#000]"
+                      >
+                        <X className="w-4 h-4 text-black" />
                       </Button>
                     </div>
                   </div>

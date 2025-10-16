@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
-import { Playfair_Display, Coiny } from "next/font/google"
+import { Playfair_Display, Coiny, Anton } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { Providers } from "@/components/providers"
@@ -25,6 +25,13 @@ const coiny = Coiny({
   display: "swap",
 })
 
+const bubbleTitle = Anton({
+  subsets: ["latin"],
+  variable: "--font-bubble-title",
+  weight: "400",
+  display: "swap",
+})
+
 export const metadata: Metadata = {
   title: "The Wanderer - An Immersive Story",
   description: "An immersive storytelling experience with cinematic visuals",
@@ -38,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${playfair.variable} ${coiny.variable} antialiased`}>
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} ${playfair.variable} ${coiny.variable} ${bubbleTitle.variable} antialiased`}>
         <Providers>
           <div className="relative min-h-screen">
             {/* Subtle animated pixel hearts background overlay */}

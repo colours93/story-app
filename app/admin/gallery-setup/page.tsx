@@ -76,17 +76,21 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
   const isReady = status?.bucket?.exists && status?.table?.exists && status?.upload?.success
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white">
-      <div className="container mx-auto px-6 py-8 max-w-4xl">
-        <Card className="border-2 border-pink-200">
+    <div className="min-h-screen bg-[repeating-linear-gradient(0deg,#fff0f7,#fff0f7_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+      <div className="container mx-auto px-6 py-8 max-w-4xl font-bubble">
+        <Card className="relative border-2 border-black rounded-none bg-[repeating-linear-gradient(0deg,#fff,#fff_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+          <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-black" />
+          <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-black" />
+          <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-black" />
+          <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-black" />
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                  <Database className="h-6 w-6 text-pink-600" />
+                <CardTitle className="flex items-center gap-2 text-2xl text-black">
+                  <Database className="h-6 w-6 text-black" />
                   Site Gallery Setup
                 </CardTitle>
-                <CardDescription className="mt-2">
+                <CardDescription className="mt-2 text-pink-800">
                   Check and fix your gallery storage configuration
                 </CardDescription>
               </div>
@@ -95,15 +99,16 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
                 size="sm"
                 onClick={checkStatus}
                 disabled={checking}
+                className="rounded-none border-2 border-black bg-white text-black hover:bg-pink-50"
               >
                 {checking ? (
                   <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin text-black" />
                     Checking...
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <RefreshCw className="h-4 w-4 mr-2 text-black" />
                     Refresh
                   </>
                 )}
@@ -114,16 +119,16 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
             {/* Status Overview */}
             {status && (
               <div className="space-y-4">
-                <Alert variant={isReady ? "default" : "destructive"}>
-                  <AlertDescription className="flex items-center gap-2">
+                <Alert variant={isReady ? "default" : "destructive"} className="rounded-none border-2 border-black bg-white">
+                  <AlertDescription className="flex items-center gap-2 text-black">
                     {isReady ? (
                       <>
-                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <CheckCircle className="h-5 w-5 text-black" />
                         <span className="font-semibold">Everything is set up! You can now upload images.</span>
                       </>
                     ) : (
                       <>
-                        <XCircle className="h-5 w-5" />
+                        <XCircle className="h-5 w-5 text-black" />
                         <span className="font-semibold">Setup incomplete. Follow the instructions below.</span>
                       </>
                     )}
@@ -132,15 +137,15 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
 
                 {/* Detailed Status */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 rounded-lg border">
+                  <div className="flex items-center gap-3 p-3 rounded-none border-2 border-black bg-white">
                     {status.bucket?.exists ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <CheckCircle className="h-5 w-5 text-black flex-shrink-0" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                      <XCircle className="h-5 w-5 text-black flex-shrink-0" />
                     )}
                     <div>
-                      <div className="font-medium">Storage Bucket</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="font-medium text-black">Storage Bucket</div>
+                      <div className="text-sm text-pink-800">
                         {status.bucket?.exists ? (
                           <>Bucket "story-images" is ready and public</>
                         ) : (
@@ -150,15 +155,15 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 rounded-lg border">
+                  <div className="flex items-center gap-3 p-3 rounded-none border-2 border-black bg-white">
                     {status.table?.exists ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <CheckCircle className="h-5 w-5 text-black flex-shrink-0" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                      <XCircle className="h-5 w-5 text-black flex-shrink-0" />
                     )}
                     <div>
-                      <div className="font-medium">Database Table</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="font-medium text-black">Database Table</div>
+                      <div className="text-sm text-pink-800">
                         {status.table?.exists ? (
                           <>Table "site_gallery_images" exists</>
                         ) : (
@@ -168,15 +173,15 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 rounded-lg border">
+                  <div className="flex items-center gap-3 p-3 rounded-none border-2 border-black bg-white">
                     {status.upload?.success ? (
-                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <CheckCircle className="h-5 w-5 text-black flex-shrink-0" />
                     ) : (
-                      <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                      <XCircle className="h-5 w-5 text-black flex-shrink-0" />
                     )}
                     <div>
-                      <div className="font-medium">Upload Test</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="font-medium text-black">Upload Test</div>
+                      <div className="text-sm text-pink-800">
                         {status.upload?.success ? (
                           <>File upload is working</>
                         ) : (
@@ -191,20 +196,20 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
 
             {/* Setup Instructions */}
             {status && !status.table?.exists && (
-              <div className="space-y-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="space-y-4 p-4 bg-amber-50 border-2 border-black rounded-none">
                 <div className="flex items-start gap-2">
-                  <Database className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <Database className="h-5 w-5 text-black mt-0.5 flex-shrink-0" />
                   <div className="space-y-3">
                     <div>
-                      <h3 className="font-semibold text-amber-900">Action Required: Create Database Table</h3>
-                      <p className="text-sm text-amber-800 mt-1">
+                      <h3 className="font-semibold text-black">Action Required: Create Database Table</h3>
+                      <p className="text-sm text-pink-800 mt-1">
                         The site_gallery_images table needs to be created in your Supabase database.
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <p className="font-medium text-amber-900">Steps:</p>
-                      <ol className="list-decimal list-inside space-y-1 text-sm text-amber-800">
+                      <p className="font-medium text-black">Steps:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-pink-800">
                         <li>Open your <a href="https://app.supabase.com/project/pttgtnvtdvcdomretmph/editor" target="_blank" rel="noopener noreferrer" className="underline font-medium">Supabase Dashboard</a></li>
                         <li>Go to SQL Editor (left sidebar)</li>
                         <li>Click "New Query"</li>
@@ -219,14 +224,14 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
                         onClick={copySQL}
                         variant="outline"
                         size="sm"
-                        className="bg-white"
+                        className="rounded-none border-2 border-black bg-white text-black hover:bg-pink-50"
                       >
-                        <Copy className="h-4 w-4 mr-2" />
+                        <Copy className="h-4 w-4 mr-2 text-black" />
                         Copy SQL to Clipboard
                       </Button>
                     </div>
 
-                    <div className="mt-4 p-3 bg-white border border-amber-300 rounded font-mono text-xs overflow-x-auto max-h-64 overflow-y-auto">
+                    <div className="mt-4 p-3 bg-white border-2 border-black rounded-none font-mono text-xs overflow-x-auto max-h-64 overflow-y-auto">
                       <pre className="whitespace-pre">{`-- Create site_gallery_images table
 CREATE TABLE IF NOT EXISTS public.site_gallery_images (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -273,14 +278,14 @@ CREATE POLICY "Allow authenticated users to delete" ON public.site_gallery_image
             {/* Success - Next Steps */}
             {isReady && (
               <div className="space-y-4">
-                <Alert>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                <Alert className="rounded-none border-2 border-black bg-white">
+                  <CheckCircle className="h-4 w-4 text-black" />
                   <AlertDescription>
                     Your gallery is ready! You can now upload images.
                   </AlertDescription>
                 </Alert>
                 <Link href="/admin/gallery">
-                  <Button className="w-full bg-pink-600 hover:bg-pink-700">
+                  <Button className="w-full rounded-none border-2 border-black bg-pink-300 text-black hover:bg-pink-400">
                     Go to Gallery Manager
                   </Button>
                 </Link>

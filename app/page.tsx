@@ -3,10 +3,13 @@
 import Link from "next/link"
 import { PixelHeart } from "@/components/pixel-heart"
 import { PixelHeartButton } from "@/components/pixel-heart-button"
+import { KawaiiMatrixRain } from "@/components/kawaii-matrix-rain"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen relative flex items-center justify-center p-6">
+      {/* Kawaii Matrix Rain Background */}
+      <KawaiiMatrixRain rainbow={true} speed={0.8} fontSize={16} opacity={0.5} zIndex={-2} />
       {/* Soft pink blurred background */}
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-pink-100 via-pink-200 to-pink-300" />
       <div className="absolute inset-0 -z-10 backdrop-blur-[4px]" />

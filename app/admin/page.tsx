@@ -253,27 +253,27 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6 font-bubble">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage stories and users</p>
+          <h1 className="text-3xl font-bold text-black">Admin Dashboard</h1>
+          <p className="text-pink-800">Manage stories and users</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 mt-3 md:mt-0">
           <Link href="/admin/gallery">
-            <Button variant="outline">
+            <Button variant="outline" className="rounded-none border-2 border-[#7a1747] bg-pink-300 text-black hover:bg-pink-400 active:bg-pink-500">
               <ImageIcon className="h-4 w-4 mr-2" />
               Site Gallery
             </Button>
           </Link>
-          <Button onClick={() => setChapterManagementOpen(true)}>
+          <Button onClick={() => setChapterManagementOpen(true)} className="rounded-none border-2 border-[#7a1747] bg-pink-300 text-black hover:bg-pink-400 active:bg-pink-500">
             <FileText className="h-4 w-4 mr-2" />
             Manage Chapters
           </Button>
           <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="rounded-none border-2 border-[#7a1747] bg-pink-300 text-black hover:bg-pink-400 active:bg-pink-500">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Assign Story
               </Button>
@@ -289,7 +289,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-sm font-medium">Story</label>
                   <Select value={selectedStoryId} onValueChange={setSelectedStoryId}>
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-none border-2 border-[#7a1747] bg-white text-black">
                       <SelectValue placeholder="Select a story" />
                     </SelectTrigger>
                     <SelectContent>
@@ -304,7 +304,7 @@ export default function AdminDashboard() {
                 <div>
                   <label className="text-sm font-medium">User</label>
                   <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-none border-2 border-[#7a1747] bg-white text-black">
                       <SelectValue placeholder="Select a user" />
                     </SelectTrigger>
                     <SelectContent>
@@ -319,12 +319,14 @@ export default function AdminDashboard() {
                 <div className="flex justify-end gap-2">
                   <Button 
                     variant="outline" 
+                    className="rounded-none border-2 border-[#7a1747] bg-white text-black hover:bg-pink-50"
                     onClick={() => setAssignmentDialogOpen(false)}
                     disabled={assignmentLoading}
                   >
                     Cancel
                   </Button>
                   <Button 
+                    className="rounded-none border-2 border-[#7a1747] bg-pink-300 text-black hover:bg-pink-400 active:bg-pink-500"
                     onClick={handleAssignStory}
                     disabled={assignmentLoading || !selectedStoryId || !selectedUserId}
                   >
@@ -334,7 +336,7 @@ export default function AdminDashboard() {
               </div>
             </DialogContent>
           </Dialog>
-          <Button onClick={fetchDashboardData} variant="outline">
+          <Button onClick={fetchDashboardData} variant="outline" className="rounded-none border-2 border-[#7a1747] bg-pink-300 text-black hover:bg-pink-400 active:bg-pink-500">
             Refresh
           </Button>
         </div>
@@ -342,58 +344,78 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="relative border-2 border-[#7a1747] rounded-none bg-[repeating-linear-gradient(0deg,#fff0f7,#fff0f7_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+          <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-[#7a1747]" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Stories</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-black">Total Stories</CardTitle>
+            <BookOpen className="h-4 w-4 text-black" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalStories}</div>
+            <div className="text-2xl font-bold text-black">{stats.totalStories}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="relative border-2 border-[#7a1747] rounded-none bg-[repeating-linear-gradient(0deg,#fff0f7,#fff0f7_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+          <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-[#7a1747]" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-black">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-black" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <div className="text-2xl font-bold text-black">{stats.totalUsers}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="relative border-2 border-[#7a1747] rounded-none bg-[repeating-linear-gradient(0deg,#fff0f7,#fff0f7_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+          <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-[#7a1747]" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Published</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-black">Published</CardTitle>
+            <Eye className="h-4 w-4 text-black" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.publishedStories}</div>
+            <div className="text-2xl font-bold text-black">{stats.publishedStories}</div>
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="relative border-2 border-[#7a1747] rounded-none bg-[repeating-linear-gradient(0deg,#fff0f7,#fff0f7_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+          <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-[#7a1747]" />
+          <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-[#7a1747]" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Drafts</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-black">Drafts</CardTitle>
+            <Calendar className="h-4 w-4 text-black" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.draftStories}</div>
+            <div className="text-2xl font-bold text-black">{stats.draftStories}</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Stories List */}
-      <Card>
+      <Card className="relative border-2 border-black rounded-none bg-[repeating-linear-gradient(0deg,#fff0f7,#fff0f7_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+        <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-black" />
         <CardHeader>
-          <CardTitle>All Stories</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-black">All Stories</CardTitle>
+          <CardDescription className="text-pink-800">
             Manage all stories in the system and their assignments
           </CardDescription>
         </CardHeader>
         <CardContent>
           {stories.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-pink-800">
               No stories found
             </div>
           ) : (
@@ -401,34 +423,35 @@ export default function AdminDashboard() {
               {stories.map((story) => (
                 <div
                   key={story.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 border-2 border-[#7a1747] rounded-none bg-white hover:bg-pink-50 transition-colors"
                 >
-                  <div className="flex-1 space-y-1">
+                  <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{story.title}</h3>
-                      <Badge variant={story.is_published ? "default" : "secondary"}>
+                      <h3 className="font-semibold text-black">{story.title}</h3>
+                      <Badge variant="outline" className="rounded-none border-2 border-[#7a1747] bg-pink-200 text-black">
                         {story.is_published ? "Published" : "Draft"}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <p className="text-sm text-pink-800 line-clamp-2 break-words">
                       {story.description}
                     </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4 text-xs text-pink-800">
                       <span>Created: {formatDate(story.created_at)}</span>
                       <span>Updated: {formatDate(story.updated_at)}</span>
                       <span>Author ID: {story.user_id}</span>
                     </div>
                     {getAssignedUsers(story.id) && (
-                      <div className="text-xs text-blue-600">
+                      <div className="text-xs text-pink-800">
                         Assigned to: {getAssignedUsers(story.id)}
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end sm:flex-none mt-2 sm:mt-0">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="rounded-none border-2 border-[#7a1747] bg-pink-300 text-black hover:bg-pink-400 active:bg-pink-500"
                       onClick={() => router.push(`/story`)}
                     >
                       <Eye className="h-4 w-4 mr-1" />
@@ -437,8 +460,8 @@ export default function AdminDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="rounded-none border-2 border-[#7a1747] bg-white text-black hover:bg-pink-50"
                       onClick={() => handleDeleteStory(story.id)}
-                      className="text-red-600 hover:text-red-700"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Delete
@@ -452,16 +475,20 @@ export default function AdminDashboard() {
       </Card>
 
       {/* Users Summary */}
-      <Card>
+      <Card className="relative border-2 border-black rounded-none bg-[repeating-linear-gradient(0deg,#fff0f7,#fff0f7_6px,#ffe4ef_6px,#ffe4ef_12px)]">
+        <span aria-hidden className="absolute top-1 left-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute top-1 right-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute bottom-1 left-1 w-2 h-2 bg-black" />
+        <span aria-hidden className="absolute bottom-1 right-1 w-2 h-2 bg-black" />
         <CardHeader>
-          <CardTitle>Recent Users</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-black">Recent Users</CardTitle>
+          <CardDescription className="text-pink-800">
             Latest registered users
           </CardDescription>
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-pink-800">
               No users found
             </div>
           ) : (
@@ -469,17 +496,17 @@ export default function AdminDashboard() {
               {users.slice(0, 5).map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-3 border rounded"
+                  className="flex items-center justify-between p-3 border-2 border-black rounded-none bg-white"
                 >
                   <div>
-                    <div className="font-medium">{user.username}</div>
-                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                    <div className="font-medium text-black">{user.username}</div>
+                    <div className="text-sm text-pink-800">{user.email}</div>
                   </div>
                   <div className="text-right">
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                    <Badge variant="outline" className="rounded-none border-2 border-black bg-pink-200 text-black">
                       {user.role}
                     </Badge>
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="text-xs text-pink-800 mt-1">
                       {formatDate(user.created_at)}
                     </div>
                   </div>

@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
     const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1)
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '10', 10), 1), 50)
     const adminViewTier = (searchParams.get('viewTier') || '').toLowerCase()
+    const typeFilter = (searchParams.get('type') || 'all').toLowerCase() as 'all' | 'image' | 'video'
+    const q = (searchParams.get('q') || '').toLowerCase().trim()
     const isAdmin = session?.user?.role === 'admin'
 
     // For testing, allow a default user id
@@ -90,17 +92,34 @@ export async function GET(request: NextRequest) {
       if (devPosts.length > 0) {
         // Map ranks for gating
         const rankByTierId: Record<string, number> = { free: 0, silver: 1, gold: 2 }
-        const filtered = devPosts
+        let filtered = devPosts
           .filter((p: any) => Boolean(p.is_published))
-          .filter((p: any) => {
-            const requiredRank = p.required_tier_id ? (rankByTierId[p.required_tier_id] ?? 0) : 0
-            return requiredRank <= userTierRank
+
+        // Text search filter
+        if (q) {
+          filtered = filtered.filter((p: any) => {
+            const t = (p.title || '').toLowerCase()
+            const b = (p.body || '').toLowerCase()
+            return t.includes(q) || b.includes(q)
           })
+        }
+
+        // Media type filter
+        if (typeFilter === 'image' || typeFilter === 'video') {
+          filtered = filtered.filter((p: any) => Array.isArray(p.assets) && p.assets.some((a: any) => a.media_type === typeFilter))
+        }
+
+        // Add can_view flag per post
+        const combined = filtered.map((p: any) => {
+          const requiredRank = p.required_tier_id ? (rankByTierId[p.required_tier_id] ?? 0) : 0
+          const canView = requiredRank <= userTierRank
+          return { ...p, can_view: canView }
+        })
 
         const start = (page - 1) * limit
         const end = start + limit
-        const pagePosts = filtered.slice(start, end)
-        const hasMore = end < filtered.length
+        const pagePosts = combined.slice(start, end)
+        const hasMore = end < combined.length
 
         return NextResponse.json({
           page,
@@ -143,21 +162,16 @@ export async function GET(request: NextRequest) {
       if (t.id) rankByTierId[t.id as string] = (t.rank as number) ?? 0
     }
 
-    // Filter posts to followed creators and allowed tiers
+    // Filter posts to followed creators only; include all tiers but mark can_view
     const filtered = (posts || []).filter((p: any) => {
       const okFollow = (isAdmin && !!adminViewTier) ? true : (followedIds.length === 0 ? true : followedIds.includes(p.user_id))
-      const requiredRank = p.required_tier_id ? (rankByTierId[p.required_tier_id] ?? 0) : 0
-      const okTier = requiredRank <= userTierRank
-      return okFollow && okTier
+      return okFollow
     })
 
-    // Pagination
+    // Load media for filtered posts before pagination to support type/search filters
     const start = (page - 1) * limit
     const end = start + limit
-    const pagePosts = filtered.slice(start, end)
-
-    // Load media for page posts
-    const postIds = pagePosts.map((p: any) => p.id)
+    const postIds = filtered.map((p: any) => p.id)
     const { data: assets } = await supabaseAdmin
       .from('media_assets')
       .select('*')
@@ -170,15 +184,37 @@ export async function GET(request: NextRequest) {
       return acc
     }, {})
 
-    const combined = pagePosts.map((p: any) => ({ ...p, assets: assetsByPost[p.id] || [] }))
+    // Combine assets
+    let combined = filtered.map((p: any) => {
+      const requiredRank = p.required_tier_id ? (rankByTierId[p.required_tier_id] ?? 0) : 0
+      const canView = requiredRank <= userTierRank
+      return { ...p, assets: assetsByPost[p.id] || [], can_view: canView }
+    })
 
-    const hasMore = end < filtered.length
+    // Apply text search
+    if (q) {
+      combined = combined.filter((p: any) => {
+        const t = (p.title || '').toLowerCase()
+        const b = (p.body || '').toLowerCase()
+        return t.includes(q) || b.includes(q)
+      })
+    }
+
+    // Apply media type filter
+    if (typeFilter === 'image' || typeFilter === 'video') {
+      combined = combined.filter((p: any) => (p.assets || []).some((a: any) => a.media_type === typeFilter))
+    }
+
+    // Pagination on filtered+combined results
+    const pagePosts = combined.slice(start, end)
+
+    const hasMore = end < combined.length
     return NextResponse.json({
       page,
       limit,
       hasMore,
       nextPage: hasMore ? page + 1 : null,
-      posts: combined,
+      posts: pagePosts,
       userTierId,
     })
   } catch (e) {

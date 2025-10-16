@@ -5,19 +5,20 @@ import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+// Avoid Radix Avatar to prevent vendor-chunk resolution issues; use native img
 import { Upload, Check } from "lucide-react"
+import { PixelHeart } from "@/components/pixel-heart"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
+import CardHeartsOverlay from "@/components/card-hearts-overlay"
+import CardHeartsInteractive from "@/components/card-hearts-interactive"
+import dynamic from "next/dynamic"
+// Load floating nav client-side only to avoid server vendor-chunk for Radix
+const ProfileFloatingNav = dynamic(() => import("@/components/profile-floating-nav"), { ssr: false })
+// Bottom-floating dock with Edit/Profile Content actions
+const ProfileFloatingDock = dynamic(() => import("@/components/profile-floating-dock"), { ssr: false })
+// Replace Radix DropdownMenu with native details/summary to avoid vendor chunk
 
 export default function UserProfilePage() {
   const params = useParams()
@@ -38,8 +39,16 @@ export default function UserProfilePage() {
   const [bioDraft, setBioDraft] = useState<string>('')
   const [assignedStory, setAssignedStory] = useState<any | null>(null)
   const [assignedImageUrl, setAssignedImageUrl] = useState<string | null>(null)
+  const [myTier, setMyTier] = useState<{ slug: string; name: string; rank: number } | null>(null)
+  // Favorites gallery state
+  const [favItems, setFavItems] = useState<Array<{ asset_id: string; post_id: string; media_type: 'image' | 'video'; media_url: string }>>([])
+  const [favPage, setFavPage] = useState(1)
+  const [favHasMore, setFavHasMore] = useState(true)
+  const [favLoading, setFavLoading] = useState(false)
+  const favLoadMoreRef = useRef<HTMLDivElement | null>(null)
   const isOwnPage = useMemo(() => {
-    return session?.user?.name && session.user.name.toLowerCase() === usernameParam.toLowerCase()
+    const sname = session?.user?.name
+    return typeof sname === 'string' && sname.toLowerCase() === usernameParam.toLowerCase()
   }, [session, usernameParam])
 
   useEffect(() => {
@@ -156,6 +165,89 @@ export default function UserProfilePage() {
     }
   }, [isOwnPage, searchParams, editing, router, usernameParam])
 
+  // Load membership tier for own profile display
+  useEffect(() => {
+    if (!isOwnPage) return
+    const loadTier = async () => {
+      try {
+        const res = await fetch('/api/membership/me')
+        const data = await res.json()
+        if (res.ok && data?.tier) setMyTier(data.tier)
+      } catch (e) {
+        console.warn('Tier load failed:', e)
+      }
+    }
+    loadTier()
+  }, [isOwnPage])
+
+  // Reset favorites when profile user changes
+  useEffect(() => {
+    setFavItems([])
+    setFavPage(1)
+    setFavHasMore(true)
+  }, [userInfo?.id])
+
+  // Prefill favorites from localStorage for instant display
+  useEffect(() => {
+    const uname = userInfo?.username
+    if (!uname) return
+    try {
+      const key = `gallery:${uname.toLowerCase()}`
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null
+      const arr = raw ? JSON.parse(raw) : []
+      if (Array.isArray(arr) && arr.length > 0) {
+        setFavItems(arr)
+      }
+    } catch {}
+  }, [userInfo?.username])
+
+  // Load favorites for gallery
+  useEffect(() => {
+    const uid = userInfo?.id
+    if (!uid || !favHasMore || favLoading) return
+    const idEncoded = encodeURIComponent(uid)
+    const usernameEncoded = encodeURIComponent(userInfo!.username)
+    let cancelled = false
+    async function loadPage() {
+      setFavLoading(true)
+      try {
+        const res = await fetch(`/api/users/${idEncoded}/favorites?page=${favPage}&limit=9&username=${usernameEncoded}`)
+        const data = await res.json()
+        if (!cancelled) {
+          const nextItems = Array.isArray(data?.items) ? data.items : []
+          setFavItems((prev) => [...prev, ...nextItems])
+          const hasMore = Boolean(data?.hasMore)
+          setFavHasMore(hasMore)
+        }
+      } catch (e) {
+        console.warn('Favorites fetch failed:', e)
+      } finally {
+        if (!cancelled) setFavLoading(false)
+      }
+    }
+    loadPage()
+    return () => { cancelled = true }
+  }, [userInfo?.id, favPage, favHasMore, favLoading])
+
+  // (Removed Gallery state and infinite scroll; Favorites is the single gallery)
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    const el = favLoadMoreRef.current
+    if (!el) return
+    if (!favHasMore) return
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          // Advance page to trigger load
+          setFavPage((p) => p + 1)
+        }
+      }
+    }, { rootMargin: '200px' })
+    observer.observe(el)
+    return () => { observer.disconnect() }
+  }, [favHasMore, favLoadMoreRef])
+
   async function handleUploadChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -244,11 +336,37 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-8 font-bubble">
+    <div className="container mx-auto max-w-6xl px-4 py-8 font-bubble">
       {/* Header spacing under global nav */}
       <div className="mb-6" />
 
-      <Card className="bg-pink-50 border-pink-200 relative">
+      {/* Floating left mini nav (transparent pink) */}
+      <ProfileFloatingNav avatarUrl={imageUrl ?? undefined} />
+      {/* Bottom-floating dock for Edit/Profile Content actions */}
+      <ProfileFloatingDock
+        isOwnPage={isOwnPage}
+        onEditProfile={startEditing}
+        onOpenContent={() => router.push('/content?type=all')}
+        onOpenLeaderboard={() => router.push('/leaderboard')}
+      />
+
+      <Card className="bg-transparent border-pink-200 relative overflow-hidden">
+        {/* Underlay: pink frosted layer with floating hearts, confined to this card */}
+        <div className="absolute inset-0 -z-10 rounded-lg bg-pink-50/80 backdrop-blur-[2px]">
+          <CardHeartsOverlay density="high" count={18} minSize={18} maxSize={34} opacity={0.4} />
+        </div>
+        {/* Interactive hearts overlay: click to pop (separate from background hearts) */}
+        <CardHeartsInteractive count={6} minSize={18} maxSize={28} opacity={0.6} className="z-10" />
+        {/* Top-right status label (single line, transparent, no sparkle) */}
+        <div className="absolute top-3 right-3 z-20 flex items-baseline gap-1">
+          <span className="text-pink-700 text-xs">
+            ID:
+          </span>
+          <span className="font-bold text-xl sm:text-2xl bg-gradient-to-r from-pink-500 via-pink-400 to-pink-600 bg-clip-text text-transparent drop-shadow-[0_0_4px_rgba(236,72,153,0.45)] animate-pulse">
+            Bimbolicious
+          </span>
+        </div>
+        {/* Removed old top text buttons; actions moved to bottom-floating dock */}
         <CardContent className="py-10">
           {loading ? (
             <div className="text-center text-pink-500">Loading profile…</div>
@@ -256,19 +374,19 @@ export default function UserProfilePage() {
             <div className="text-center text-red-600">User not found.</div>
           ) : (
             <div className="flex flex-col items-center gap-6">
-              {/* Center avatar, Instagram-like circle */}
+              {/* Center avatar, Instagram-like circle (native img to avoid Radix) */}
               <div className="relative">
                 <div className="p-1 rounded-full bg-pink-200">
                   <div className="rounded-full bg-white p-1">
-                    <Avatar className="size-32 rounded-full overflow-hidden">
+                    <div className="size-32 rounded-full overflow-hidden flex items-center justify-center bg-pink-50">
                       {imageUrl ? (
-                        <AvatarImage src={imageUrl} alt={`${userInfo.username} avatar`} className="object-cover" />
+                        <img src={imageUrl} alt={`${userInfo.username} avatar`} className="object-cover w-full h-full" />
                       ) : (
-                        <AvatarFallback className="text-pink-500 text-2xl">
+                        <span className="text-pink-500 text-2xl">
                           {userInfo.username.substring(0, 1).toUpperCase()}
-                        </AvatarFallback>
+                        </span>
                       )}
-                    </Avatar>
+                    </div>
                   </div>
                 </div>
                 {isOwnPage && (
@@ -297,8 +415,11 @@ export default function UserProfilePage() {
                 )}
               </div>
 
-              {/* Username under avatar */}
+              {/* Username and membership under avatar */}
               <h1 className="text-3xl font-bold text-pink-500">@{userInfo.username}</h1>
+              {isOwnPage && myTier && (
+                <div className="mt-1 text-pink-600 text-sm">Membership: <span className="font-semibold">{myTier.name}</span></div>
+              )}
 
               {/* Bio section */}
               {editing ? (
@@ -357,6 +478,88 @@ export default function UserProfilePage() {
                       </div>
                     </div>
                   </Link>
+                </div>
+              )}
+
+              {/* Single Gallery: Favorites only */}
+
+              {/* Favorites Gallery */}
+              {userInfo && (
+                <div className="w-full mt-8">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 id="gallery" className="text-lg font-semibold text-pink-600">Favorites</h2>
+                    <Link href="/content?type=all" className="text-pink-600/80 text-sm hover:text-pink-700">Add from Feed</Link>
+                  </div>
+                  {(favItems.length === 0 || favItems.length <= 3) ? (
+                    <div className="grid grid-cols-3 gap-3">
+                      {[0,1,2].map((i) => {
+                        const it = favItems[i]
+                        if (it) {
+                          return (
+                            <div key={it.asset_id} className="aspect-[4/3] rounded-md overflow-hidden bg-pink-100">
+                              {it.media_type === 'image' ? (
+                                <img src={it.media_url} alt="Favorite image" className="w-full h-full object-cover" loading="lazy" />
+                              ) : (
+                                <video
+                                  src={it.media_url}
+                                  className="w-full h-full object-cover"
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                  onMouseEnter={(e) => {
+                                    const v = e.currentTarget
+                                    v.play().catch(() => {})
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    const v = e.currentTarget
+                                    v.pause()
+                                    try { v.currentTime = 0 } catch {}
+                                  }}
+                                />
+                              )}
+                            </div>
+                          )
+                        }
+                        return (
+                          <Link key={`ph-${i}`} href="/content?type=all" aria-label="Browse feed to add Favorites" className="group block">
+                            <div className="aspect-[4/3] rounded-md overflow-hidden bg-pink-100 flex items-center justify-center ring-1 ring-pink-200/50 group-hover:bg-pink-200 transition-colors">
+                              <PixelHeart size={72} />
+                            </div>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-3">
+                      {favItems.map((it) => (
+                        <div key={it.asset_id} className="aspect-[4/3] rounded-md overflow-hidden bg-pink-100">
+                          {it.media_type === 'image' ? (
+                            <img src={it.media_url} alt="Favorite image" className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            <video
+                              src={it.media_url}
+                              className="w-full h-full object-cover"
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onMouseEnter={(e) => {
+                                const v = e.currentTarget
+                                v.play().catch(() => {})
+                              }}
+                              onMouseLeave={(e) => {
+                                const v = e.currentTarget
+                                v.pause()
+                                try { v.currentTime = 0 } catch {}
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Sentinel for infinite scroll */}
+                  <div ref={favLoadMoreRef} className="h-8" />
+                  {/* Removed bottom loading indicator per request */}
                 </div>
               )}
 

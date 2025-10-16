@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { supabaseAdmin } from '@/lib/supabase'
 
 // Public endpoint: look up a user by username and return basic info
@@ -19,6 +21,24 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching user by username:', error)
+      // Dev fallback: if viewing own profile, return session user info
+      const session = await getServerSession(authOptions)
+      const sessionUsername = session?.user?.name
+      if (sessionUsername && sessionUsername.toLowerCase() === username.toLowerCase()) {
+        const userId = (session.user as any)?.id || 'test-user-id'
+        const email = session.user?.email || null
+        const role = (session.user as any)?.role || 'user'
+        return NextResponse.json({
+          user: {
+            id: userId,
+            username: sessionUsername,
+            email,
+            role,
+            created_at: new Date().toISOString(),
+          },
+          devFallback: true,
+        })
+      }
       return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 })
     }
 
